@@ -1,5 +1,8 @@
 {% extends 'index.html' %}
 
+{% block home %}
+{% endblock %}
+
 {% block nav %}
     {{ super() }}
 {% endblock %}
@@ -15,6 +18,10 @@ There are no TODO lists to show.
 {% for l in todo_lists %}
     <li>
         <a href="{{ url_for('one_list',ident=l.id)}}">{{ l.title }}</a>
+        <form action='/delete/{{ l.id }}' method="POST">
+        	{{ form.hidden_tag() }}
+    		{{ form.submit() }}
+    	</form>
     </li>
 {% endfor %}
 </ul>

@@ -1,5 +1,7 @@
 <h1>{{ todolist.title }}</h1>
 {% extends 'index.html' %}
+{% block home %}
+{% endblock %}
 
 {% block nav %}
     {{ super() }}
@@ -10,7 +12,11 @@
 <ul>
 {% for item in items %}
     <li>
-        {{ item.description }} - Priority: {{ item.priority }} 
+        {{ item.description }} - Priority: {{ item.priority }}<br>
+        <form action='/update/{{ item.id }}' method="POST">
+        	{{ form.hidden_tag() }}
+    		{{ form.submit() }}
+    	</form>
     </li>
 {% endfor %}
 </ul>
