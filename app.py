@@ -3,7 +3,7 @@ from flask import Flask, render_template, session, redirect, url_for, flash, req
 from flask_script import Manager, Shell
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FloatField, TextAreaField
-from wtforms.validators import Required
+from wtforms.validators import Required,ValidationError
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate, MigrateCommand
 
@@ -53,10 +53,15 @@ class TodoItem(db.Model):
 ##### Set up Forms #####
 ########################
 
+def fieldsepcheck(form, field):
+    for item in field.data.split('\n'):
+        if len(item.split(','))==1:
+            raise ValidationError('Each task and priority must be separated by a comma')
+
 # Provided - Form to create a todo list
 class TodoListForm(FlaskForm):
     name = StringField("What is the title of this TODO List?", validators=[Required()])
-    items = TextAreaField("Enter your TODO list items in the following format: Description, Priority -- separated by newlines")
+    items = TextAreaField("Enter your TODO list items in the following format: Description, Priority -- separated by newlines",validators=[Required(),fieldsepcheck])
     submit = SubmitField("Submit")
 
 class UpdateButtonForm(FlaskForm):
@@ -107,11 +112,12 @@ def get_or_create_todolist(title, item_strings=[]):
 @app.route('/', methods=["GET","POST"])
 def index():
     form = TodoListForm()
-    if request.method=="POST":
+    if request.method=="POST" and form.validate():
         title = form.name.data
         items_data = form.items.data
         new_list = get_or_create_todolist(title, items_data.split("\n"))
         return redirect(url_for('all_lists'))
+    flash(form.errors)
     return render_template('index.html',form=form)
 
 @app.route('/all_lists',methods=["GET","POST"])
@@ -120,7 +126,6 @@ def all_lists():
     lsts = TodoList.query.all()
     return render_template('all_lists.html',todo_lists=lsts, form=form)
 
-# Provided - see below for additional TODO
 @app.route('/list/<ident>',methods=["GET","POST"])
 def one_list(ident):
     form = UpdateButtonForm()
@@ -128,19 +133,17 @@ def one_list(ident):
     items = lst.items.all()
     return render_template('list_tpl.html',todolist=lst,items=items,form=form)
 
-# TODO 364: Complete route to update an individual ToDo item's priority
 @app.route('/update/<item>',methods=["GET","POST"])
 def update(item):
-	form = UpdateInfoForm()
-	if form.validate():
-		item = TodoItem.query.filter_by(id = item).first()
-		flash('Updated priority of item: '+item.description)
-		item.priority = form.newPriority.data
-		db.session.commit()
-		return redirect(url_for('all_lists'))
-	return render_template('update_item.html',form=form)
+    form = UpdateInfoForm()
+    if form.validate():
+        item = TodoItem.query.filter_by(id = item).first()
+        flash('Updated priority of item: '+item.description)
+        item.priority = form.newPriority.data
+        db.session.commit()
+        return redirect(url_for('all_lists'))
+    return render_template('update_item.html',form=form)
 
-# TODO 364: Complete route to delete a whole ToDoList
 @app.route('/delete/<lst>',methods=["GET","POST"])
 def delete(lst):
 	lst = TodoList.query.filter_by(id=lst).first()
